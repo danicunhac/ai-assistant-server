@@ -30,6 +30,25 @@ async def add_message(text: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.put("/{id}")
+async def update_message(id: int, text: str):
+    try:
+        selected_message = chat.get_message(id)
+
+        if selected_message is None:
+            raise HTTPException(status_code=404, detail="Message not found")
+
+        if selected_message.get_sender() == "system":
+            raise HTTPException(status_code=400, detail="Cannot update system messages")
+
+        if chat.update_message(id, text):
+            return chat.get_messages()
+        else:
+            raise HTTPException(status_code=404, detail="Message not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/{id}")
 async def delete_message(id: int):
     try:
