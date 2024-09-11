@@ -2,10 +2,23 @@ from typing import Union
 
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from services.chat import ChatService
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 chat = ChatService()
 
@@ -24,8 +37,8 @@ async def get_messages():
 @app.post("/")
 async def add_message(text: str):
     try:
-        chat.add_message(text)
-        return chat.get_messages()
+        new_messages = chat.add_message(text)
+        return new_messages
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

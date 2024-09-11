@@ -20,7 +20,7 @@ class ChatService:
         return self.messages
 
     def add_message(self, text: str):
-        new_message_id = len(self.messages) + 1
+        new_message_id = self.messages[-1].id + 1 if self.messages else 1
 
         user_message = MessageEntity(new_message_id, text, "user")
 
@@ -29,6 +29,8 @@ class ChatService:
         new_message = OpenAIRepository().get_response(text, new_message_id)
 
         self.messages.append(new_message)
+
+        return [user_message, new_message]
 
     def get_messages(self):
         return self.messages
