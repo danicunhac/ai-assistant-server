@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.testclient import TestClient
+
 from services.chat import ChatService
 
 app = FastAPI()
+
 
 origins = ["http://localhost:3000", "https://ai-assistant-web-beta.vercel.app"]
 
@@ -29,6 +32,18 @@ async def get_messages():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+test_client = TestClient(app)
+
+
+def test_get_messages():
+    response = test_client.get("/")
+    assert response.status_code == 200
+    assert response.json()[0].get("id") == 1
+    assert response.json()[0].get("sender") == "system"
+    assert isinstance(response.json()[0].get("text"), str)
+    assert response.json()[0].get("edited") is False
+
+
 @app.post("/")
 async def add_message(text: str):
     try:
@@ -36,6 +51,23 @@ async def add_message(text: str):
         return new_messages
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def test_add_message():
+    response = test_client.post("/?text=Hello%20World!")
+    assert response.status_code == 200
+
+    ## Check if the user message was added to the chat
+    assert isinstance(response.json()[0].get("id"), int)
+    assert response.json()[0].get("sender") == "user"
+    assert response.json()[0].get("text") == "Hello World!"
+    assert response.json()[0].get("edited") is False
+
+    ## Check if the system message was added to the chat
+    assert isinstance(response.json()[-1].get("id"), int)
+    assert response.json()[-1].get("sender") == "system"
+    assert isinstance(response.json()[-1].get("text"), str)
+    assert response.json()[-1].get("edited") is False
 
 
 @app.put("/{id}")
@@ -57,6 +89,23 @@ async def update_message(id: int, text: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def test_update_message():
+    ## Create a new message
+    response = test_client.post("/?text=Hello%20World!")
+    assert response.status_code == 200
+    assert isinstance(response.json()[-2].get("id"), int)
+
+    ## Update the message
+    message_id = response.json()[-2].get("id")
+    response = test_client.put(f"/{message_id}?text=Hello%20World%20Updated!")
+    assert response.status_code == 200
+
+    ## Loop through the messages and check if the message was updated
+    for message in response.json():
+        if message.get("id") == message_id:
+            assert message.get("text") == "Hello World Updated!"
+
+
 @app.delete("/{id}")
 async def delete_message(id: int):
     try:
@@ -74,3 +123,18 @@ async def delete_message(id: int):
             raise HTTPException(status_code=404, detail="Message not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def test_delete_message():
+    ## Create a new message
+    response = test_client.post("/?text=Hello%20World!")
+    assert response.status_code == 200
+    assert isinstance(response.json()[-2].get("id"), int)
+
+    ## Delete the message
+    message_id = response.json()[-2].get("id")
+    response = test_client.delete(f"/{message_id}")
+
+    ## Loop through the messages and check if the message was deleted
+    for message in response.json():
+        assert message.get("id") != message_id
