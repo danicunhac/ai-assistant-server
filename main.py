@@ -1,6 +1,3 @@
-from typing import Union
-
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,9 +5,7 @@ from services.chat import ChatService
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-]
+origins = ["http://localhost:3000", "https://ai-assistant-web-beta.vercel.app"]
 
 app.add_middleware(
     CORSMiddleware,
